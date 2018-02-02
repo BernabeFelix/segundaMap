@@ -1,4 +1,5 @@
 const express = require("express");
+import { getAds } from "./api/utils";
 import { queryData } from "./api/query";
 import { getCategories } from "./api/categories";
 
@@ -9,15 +10,15 @@ app.get("/api/categories", async (req, res) => {
   try {
     res.send(await getCategories());
   } catch (e) {
-    console.log(res.send(e.message));
+    console.log(res.send(e));
   }
 });
 
 app.get("/api/query", async (req, res) => {
   try {
-    res.send(await queryData(req.query));
+    res.send(getAds(await queryData(req.query)));
   } catch (e) {
-    console.log(res.send(e.message));
+    console.log(res.send(e));
   }
 });
 
