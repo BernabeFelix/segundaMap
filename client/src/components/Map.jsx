@@ -4,43 +4,58 @@ import React from "react";
 
 class Map extends React.Component {
   static defaultProps = {
+    markers: []
+  };
+
+  map;
+  Geocoder;
+  state = {
     center: { lat: 59.95, lng: 30.33 },
-    markers: [],
+    geocodedMarkers: [],
     zoom: 11
   };
 
-  Geocoder;
-  state = {
-    geocodedMarkers: []
-  };
-
-  componentDidUpdate() {
-    if (this.props.markers && !this.state.geocodedMarkers.length && this.Geocoder) {
+  componentDidUpdate({ markers }) {
+    if (markers !== this.props.markers && this.Geocoder) {
       this.geocodeMarkers();
     }
   }
 
-  initGeocoder = ({ _, maps }) => {
+  initGeocoder = ({ map, maps }) => {
     this.Geocoder = new maps.Geocoder();
+    this.map = map;
 
-    if (this.props.markers.length) this.geocodeMarkers();
+    if (this.props.markers.length && !this.state.geocodedMarkers.length) this.geocodeMarkers();
   };
 
   geocodeMarkers() {
-    this.props.markers.forEach(marker => {
-      this.Geocoder.geocode({ address: marker.location }, (results, status) => {
-        if (status === window.google.maps.GeocoderStatus.OK) {
-          this.setState(prevState => ({
-            geocodedMarkers: [
-              ...prevState.geocodedMarkers,
-              {
-                ...marker,
-                lat: results[0].geometry.location.lat(),
-                lng: results[0].geometry.location.lng()
-              }
-            ]
-          }));
-        }
+    // clean state before anything
+    this.setState({ geocodedMarkers: [] }, () => {
+      const bounds = new window.google.maps.LatLngBounds();
+
+      this.props.markers.forEach(marker => {
+        this.Geocoder.geocode({ address: marker.location }, (results, status) => {
+          if (status === window.google.maps.GeocoderStatus.OK) {
+            const lat = results[0].geometry.location.lat();
+            const lng = results[0].geometry.location.lng();
+
+            // update center and zoom
+            bounds.extend(new window.google.maps.LatLng(lat, lng));
+            this.map.fitBounds(bounds);
+
+            // update geocoded markers
+            this.setState(prevState => ({
+              geocodedMarkers: [
+                ...prevState.geocodedMarkers,
+                {
+                  ...marker,
+                  lat,
+                  lng
+                }
+              ]
+            }));
+          }
+        });
       });
     });
   }
@@ -50,8 +65,8 @@ class Map extends React.Component {
 
     return (
       <GoogleMapReact
-        defaultCenter={this.props.center}
-        defaultZoom={this.props.zoom}
+        defaultCenter={this.state.center}
+        defaultZoom={this.state.zoom}
         onGoogleApiLoaded={this.initGeocoder}
       >
         {geocodedMarkers.map(marker => <Marker {...marker} key={marker.title} />)}
