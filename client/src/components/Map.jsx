@@ -10,9 +10,9 @@ class Map extends React.Component {
   map;
   Geocoder;
   state = {
-    center: { lat: 59.95, lng: 30.33 },
+    center: [0, 0],
     geocodedMarkers: [],
-    zoom: 11
+    zoom: 5
   };
 
   componentDidUpdate({ markers }) {
@@ -21,9 +21,26 @@ class Map extends React.Component {
     }
   }
 
+  centerMap = () => {
+    const address = "mexico";
+
+    this.Geocoder.geocode({ address }, (results, status) => {
+      if (status === window.google.maps.GeocoderStatus.OK) {
+        this.setState({
+          center: {
+            lat: results[0].geometry.location.lat(),
+            lng: results[0].geometry.location.lng()
+          }
+        });
+      }
+    });
+  };
+
   initGeocoder = ({ map, maps }) => {
     this.Geocoder = new maps.Geocoder();
     this.map = map;
+
+    this.centerMap();
 
     if (this.props.markers.length && !this.state.geocodedMarkers.length) this.geocodeMarkers();
   };
@@ -65,7 +82,8 @@ class Map extends React.Component {
 
     return (
       <GoogleMapReact
-        defaultCenter={this.state.center}
+        yesIWantToUseGoogleMapApiInternals={true}
+        center={this.state.center}
         defaultZoom={this.state.zoom}
         onGoogleApiLoaded={this.initGeocoder}
       >
